@@ -1,0 +1,21 @@
+# 渲染产物（用 markmap 生成的网页导图，本地看即可，不入库）
+mindmap.html
+*.xmind
+*.png
+*.jpg
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Node（如果用了 markmap-cli）
+node_modules/
+package-lock.json
+
+# Java 示例工程（如果你想在仓库里放 demo，把这一行去掉）
+target/
+*.class
+*.jar

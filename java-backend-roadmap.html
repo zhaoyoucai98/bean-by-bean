@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bean 盖楼记 · Java 后端六步建成</title>
+<style>
+/* ============================================================
+   一、内嵌精简版 Tailwind 工具类（不依赖任何外部 CDN）
+   只保留本页用到的原子类，命名与 Tailwind 保持一致
+   ============================================================ */
+:root{
+  --bg:#080d18; --panel:#111a2e; --panel2:#16203a; --line:#243356;
+  --txt:#e8eefb; --muted:#93a4c0; --c:#38bdf8;
+  --ok:#34d399; --warn:#fbbf24; --bad:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);
+  font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.75}
+.flex{display:flex}.grid{display:grid}
+.items-center{align-items:center}.items-start{align-items:flex-start}
+.justify-between{justify-content:space-between}.justify-center{justify-content:center}
+.flex-col{flex-direction:column}.flex-wrap{flex-wrap:wrap}
+.gap-1{gap:.25rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-6{gap:1.5rem}
+.p-3{padding:.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}
+.px-3{padding-left:.75rem;padding-right:.75rem}
+.px-4{padding-left:1rem;padding-right:1rem}
+.py-1{padding-top:.25rem;padding-bottom:.25rem}
+.py-2{padding-top:.5rem;padding-bottom:.5rem}
+.py-3{padding-top:.75rem;padding-bottom:.75rem}
+.mt-1{margin-top:.25rem}.mt-2{margin-top:.5rem}.mt-3{margin-top:.75rem}.mt-4{margin-top:1rem}
+.mb-2{margin-bottom:.5rem}.mb-3{margin-bottom:.75rem}.mb-4{margin-bottom:1rem}
+.rounded{border-radius:.5rem}.rounded-lg{border-radius:.75rem}
+.rounded-xl{border-radius:1rem}.rounded-full{border-radius:9999px}
+.text-xs{font-size:.75rem}.text-sm{font-size:.875rem}.text-base{font-size:1rem}
+.text-lg{font-size:1.125rem}.text-xl{font-size:1.25rem}.text-2xl{font-size:1.5rem}.text-3xl{font-size:1.9rem}
+.font-bold{font-weight:700}.font-mono{font-family:"JetBrains Mono",Consolas,"Courier New",monospace}
+.text-center{text-align:center}.text-right{text-align:right}
+.w-full{width:100%}.h-full{height:100%}.relative{position:relative}.absolute{position:absolute}
+.fixed{position:fixed}.hidden{display:none}
+.overflow-hidden{overflow:hidden}.overflow-x-auto{overflow-x:auto}
+.border{border:1px solid var(--line)}
+.cursor-pointer{cursor:pointer}.select-none{user-select:none}
+.transition{transition:all .25s ease}
+.shrink-0{flex-shrink:0}
+.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* 语义色 */
+.c-main{color:var(--c)}.c-muted{color:var(--muted)}
+.c-ok{color:var(--ok)}.c-warn{color:var(--warn)}.c-bad{color:var(--bad)}
+.bg-panel{background:var(--panel)}.bg-panel2{background:var(--panel2)}
+
+/* ============================================================
+   二、页面骨架
+   ============================================================ */
+#app{min-height:100vh;display:flex;flex-direction:column;max-width:1180px;margin:0 auto}
+header{padding:1.1rem 1.5rem .6rem;position:relative;z-index:20}
+.brand-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.brand{font-size:1.15rem;font-weight:700;letter-spacing:.5px}
+.brand small{display:block;font-size:.75rem;color:var(--muted);font-weight:400;letter-spacing:0}
+/* 顶部进度条 */
+.progress-wrap{height:4px;background:var(--panel2);border-radius:999px;margin-top:.75rem;overflow:hidden}
+.progress-bar{height:100%;border-radius:999px;background:linear-gradient(90deg,#38bdf8,#34d399);
+  width:0;transition:width .5s cubic-bezier(.4,0,.2,1)}
+/* 幕指示器 */
+.act-tag{display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;padding:.25rem .7rem;
+  border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted)}
+
+main{flex:1;padding:.6rem 1.5rem 1rem}
+.scene{display:none}
+.scene.is-active{display:grid;gap:1.25rem;grid-template-columns:1.05fr .95fr;align-items:start}
+@media(max-width:860px){.scene.is-active{grid-template-columns:1fr}}
+
+/* 左侧：故事卡 */
+.story-card{background:var(--panel);border:1px solid var(--line);border-radius:1rem;padding:1.4rem}
+.scene-title{font-size:1.6rem;font-weight:800;line-height:1.3}
+.scene-sub{font-size:.85rem;color:var(--c);margin-top:.3rem;font-weight:600}
+.story-text{font-size:.95rem;color:#cbd7ea;margin-top:.9rem}
+.chip{display:inline-block;font-size:.72rem;padding:.18rem .55rem;border-radius:.5rem;
+  background:var(--panel2);border:1px solid var(--line);color:#b9c8e0}
+.chip.hl{background:rgba(56,189,248,.13);border-color:rgba(56,189,248,.4);color:var(--c)}
+
+/* 七、版本锚点徽章（改造批次 A 新增） */
+.sub-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap}
+.vbadge{display:inline-flex;align-items:center;gap:.3rem;font-size:.7rem;padding:.22rem .62rem;
+  border-radius:999px;border:1px solid var(--c);color:var(--c);background:rgba(255,255,255,.04);
+  font-weight:700;letter-spacing:.2px;white-space:nowrap}
+.vbadge.dim{border-color:var(--line);color:var(--muted);font-weight:600}
+
+/* 八、降级 / 提醒提示框 */
+.notice{display:flex;gap:.55rem;align-items:flex-start;margin-top:.9rem;border-radius:.65rem;
+  padding:.7rem .85rem;font-size:.82rem;line-height:1.65;
+  background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.32);
+  border-left:3px solid var(--warn);color:#e6d9b8}
+.notice b{color:#fbbf24}
+.notice.skip{background:rgba(148,163,184,.08);border-color:rgba(148,163,184,.28);
+  border-left-color:#94a3b8;color:#c2ccdf}
+.notice.skip b{color:#dbe4f2}
+
+/* 九、出口区：接着去哪查 */
+.exit{margin-top:1rem;padding-top:.85rem;border-top:1px dashed var(--line)}
+.exit h4{font-size:.74rem;font-weight:700;color:var(--muted);letter-spacing:.5px;
+  margin-bottom:.45rem;display:flex;align-items:center;gap:.35rem}
+.exit-list{display:flex;flex-direction:column;gap:.2rem}
+.exit a{display:flex;align-items:center;gap:.45rem;font-size:.79rem;color:#9dc3ea;
+  text-decoration:none;padding:.28rem .5rem;border-radius:.45rem;
+  border:1px solid transparent;transition:all .18s ease}
+.exit a:hover{background:var(--panel2);border-color:var(--line);color:var(--c)}
+.exit a .src{margin-left:auto;font-size:.66rem;color:#6b7d9c;white-space:nowrap;padding-left:.5rem}
+.exit .tip{font-size:.72rem;color:#6b7d9c;margin-top:.5rem;line-height:1.6}
+.ex-link{font-size:.79rem;color:var(--c);text-decoration:none;
+  border-bottom:1px dashed rgba(56,189,248,.5)}
+.ex-link:hover{opacity:.75}
+
+/* 十、全局导图页（批次 E 新增） */
+.mm{width:100%;height:auto;display:block;margin-top:1.1rem}
+.mm-link{fill:none;stroke-width:1.5;stroke-dasharray:460;stroke-dashoffset:460;
+  animation:mmDraw 1s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes mmDraw{to{stroke-dashoffset:0}}
+.mm-node{opacity:0;transform-box:fill-box;transform-origin:center;
+  animation:mmPop .5s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes mmPop{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
+.mm-hit{cursor:pointer;transform-box:fill-box;transform-origin:center;transition:transform .18s ease}
+.mm-hit:hover{transform:translateY(-3px)}
+.mm-box,.mm-lbox{transition:stroke-width .18s ease,filter .18s ease}
+.mm-hit:hover .mm-box{stroke-width:2.8;filter:brightness(1.35)}
+.mm-hit:hover .mm-lbox{stroke-width:2.2;filter:brightness(1.35)}
+/* 第二次进入导图页不再重播生长动画，避免打断阅读 */
+.scene.no-anim .mm-link{animation:none;stroke-dashoffset:0}
+.scene.no-anim .mm-node{animation:none;opacity:1}
+/* 两栏小卡：痛点 / 收获 */
+.mini{background:var(--panel2);border:1px solid var(--line);border-radius:.75rem;padding:.8rem .9rem}
+.mini h4{font-size:.78rem;font-weight:700;margin-bottom:.35rem;letter-spacing:.3px}
+.mini p{font-size:.82rem;color:#b9c8e0;line-height:1.65}
+/* 右侧：动画舞台 */
+.stage{background:linear-gradient(160deg,#0d1526,#111a2e);border:1px solid var(--line);
+  border-radius:1rem;padding:1rem;position:relative;overflow:hidden}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(600px 300px at 70% 10%,color-mix(in srgb,var(--c) 12%,transparent),transparent 70%)}
+.stage-head{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;
+  color:var(--muted);margin-bottom:.4rem;position:relative;z-index:2}
+.legend{font-size:.72rem;color:#7f92b3;margin-top:.5rem;text-align:center}
+
+/* ============================================================
+   三、代码展示 + 极简语法高亮
+   ============================================================ */
+.code-wrap{background:#0a1120;border:1px solid var(--line);border-radius:.75rem;overflow:hidden;margin-top:.9rem}
+.code-head{display:flex;justify-content:space-between;align-items:center;padding:.35rem .8rem;
+  background:#0e1729;border-bottom:1px solid var(--line);font-size:.7rem;color:var(--muted)}
+.code-wrap pre{padding:.85rem .95rem;font-size:.78rem;line-height:1.7;overflow-x:auto;
+  font-family:"JetBrains Mono",Consolas,monospace;color:#d7e3f7}
+.c-kw{color:#c084fc}.c-str{color:#86efac}.c-com{color:#5b6b87;font-style:italic}
+.c-ann{color:#fbbf24}.c-tag{color:#38bdf8}.c-attr{color:#f0abfc}.c-key{color:#7dd3fc}
+
+/* ============================================================
+   四、名词悬浮解释框
+   ============================================================ */
+.term{color:var(--c);border-bottom:1px dashed rgba(56,189,248,.55);cursor:help;font-weight:600}
+#tip{position:fixed;z-index:99;max-width:290px;background:#0e1729;border:1px solid var(--c);
+  color:#dbe6f8;font-size:.78rem;line-height:1.6;padding:.6rem .75rem;border-radius:.65rem;
+  box-shadow:0 10px 30px rgba(0,0,0,.55);opacity:0;transform:translateY(4px);
+  transition:opacity .15s ease,transform .15s ease;pointer-events:none}
+#tip.show{opacity:1;transform:translateY(0)}
+
+/* ============================================================
+   五、底部控制栏
+   ============================================================ */
+footer{padding:.8rem 1.5rem 1.4rem;position:relative;z-index:20}
+.ctrl{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+  background:var(--panel);border:1px solid var(--line);border-radius:1rem;padding:.7rem 1rem}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:.6rem;
+  padding:.42rem .9rem;font-size:.82rem;cursor:pointer;transition:all .2s ease;font-family:inherit}
+.btn:hover{border-color:var(--c);color:var(--c)}
+.btn.primary{background:var(--c);color:#04121f;border-color:var(--c);font-weight:700}
+.btn.primary:hover{filter:brightness(1.12);color:#04121f}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.dots{display:flex;gap:.35rem;flex-wrap:wrap}
+.dot{width:28px;height:6px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);
+  cursor:pointer;transition:all .2s ease;padding:0}
+.dot.on{background:var(--c);border-color:var(--c);box-shadow:0 0 10px rgba(56,189,248,.5)}
+.dot.done{background:rgba(56,189,248,.45);border-color:rgba(56,189,248,.5)}
+.dot-label{font-size:.7rem;color:var(--muted);margin-top:.35rem;text-align:center;width:100%}
+
+/* ============================================================
+   六、动画：只使用 淡入 / 平移 / 缩放（扁平卡通风格）
+   ============================================================ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{opacity:0;transform:translateY(18px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes flyLeft{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+@keyframes flyRight{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:translateX(0)}}
+/* 场景元素默认隐藏，父级 .is-active 时播放（display 切换会自动重置动画） */
+.is-active .a-fade{opacity:0;animation:fadeUp .55s ease forwards;animation-delay:var(--d,0s)}
+.is-active .a-pop{opacity:0;animation:popIn .5s ease forwards;animation-delay:var(--d,0s)}
+.is-active .a-in{opacity:0;animation:fadeIn .8s ease forwards;animation-delay:var(--d,0s)}
+.is-active .a-left{opacity:0;animation:flyLeft .6s ease forwards;animation-delay:var(--d,0s)}
+.is-active .a-right{opacity:0;animation:flyRight .6s ease forwards;animation-delay:var(--d,0s)}
+
+/* 循环动画（仅在激活幕运行） */
+.is-active .loop-hammer{animation:hammer .55s ease-in-out infinite alternate}
+@keyframes hammer{from{transform:translateY(0) rotate(-8deg)}to{transform:translateY(-16px) rotate(14deg)}}
+.is-active .loop-drive{animation:drive 3.4s ease-in-out infinite}
+@keyframes drive{0%{transform:translateX(0)}45%{transform:translateX(112px)}55%{transform:translateX(112px)}100%{transform:translateX(0)}}
+.is-active .loop-box{animation:boxPop 3.4s ease-in-out infinite}
+@keyframes boxPop{0%,40%{opacity:0;transform:translateY(0) scale(.6)}
+  45%,55%{opacity:1;transform:translateY(-4px) scale(1)}60%,100%{opacity:0;transform:translateY(0) scale(.6)}}
+.is-active .loop-plug{animation:plug 2.6s ease-in-out infinite}
+@keyframes plug{0%{transform:translateX(0)}25%{transform:translateX(46px)}
+  45%{transform:translateX(46px)}70%{transform:translateX(0)}100%{transform:translateX(0)}}
+.is-active .loop-drop{animation:drop 1.6s linear infinite}
+@keyframes drop{0%{opacity:0;transform:translateY(0)}20%{opacity:1}100%{opacity:0;transform:translateY(34px)}}
+.is-active .loop-dash{stroke-dasharray:6 6;animation:dash 1.2s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-24}}
+.is-active .loop-blink{animation:blink 1s steps(2) infinite}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.is-active .loop-float{animation:float 2.6s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.is-active .loop-pulse{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+
+/* 表格 */
+table{width:100%;border-collapse:collapse;font-size:.8rem}
+th,td{border:1px solid var(--line);padding:.55rem .6rem;text-align:left;vertical-align:top}
+th{background:#16203a;color:var(--c);font-weight:700;white-space:nowrap}
+td{color:#c6d3e8}
+tbody tr:nth-child(even){background:rgba(255,255,255,.02)}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ 顶部 ============ -->
+  <header>
+    <div class="brand-bar">
+      <div class="brand flex items-center gap-3">
+        <span style="font-size:1.6rem">🏗️</span>
+        <span>Bean 盖楼记
+          <small>一颗 Bean 一颗 Bean，从地基盖到小区</small>
+        </span>
+      </div>
+      <div class="act-tag">
+        <span id="actNo">第 1 / 7 幕</span>
+        <span style="color:var(--line)">|</span>
+        <span id="actName" class="c-main">JavaSE · 地基与原材料</span>
+      </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-bar" id="bar"></div></div>
+  </header>
+
+  <main id="stageWrap">
+
+  <!-- =========================================================
+       第 1 幕：JavaSE —— 地基与原材料
+       ========================================================= -->
+  <section class="scene" data-name="JavaSE · 地基与原材料" data-color="#38bdf8">
+    <div class="story-card">
+      <div class="sub-row">
+        <div class="scene-sub">第 1 幕 · 比喻：地基与砖块水泥</div>
+        <span class="vbadge">📌 JDK 21（LTS）</span>
+      </div>
+      <h2 class="scene-title">JavaSE：先学会砌墙</h2>
+      <p class="story-text">
+        你想盖一栋房子（做一个网站后台）。这一阶段，工地上只有<span class="term" data-tip="JDK：Java 开发工具包，装了它你才能编译和运行 Java 代码，相当于整套基础工具箱。">JDK</span>
+        这一套基础工具，外加砖、水泥和一把铲子。墙怎么砌、砖怎么摆，全靠你一铲一铲手写。
+        房子能盖起来，但很慢——同样的活儿要重复干一百遍，而且想做 Web 开发，连一扇现成的门都得自己造。
+      </p>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <span class="chip hl">JDK / 环境</span><span class="chip hl">语法</span>
+        <span class="chip hl">面向对象</span><span class="chip hl">集合</span>
+        <span class="chip hl">IO</span><span class="chip hl">多线程</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-head"><span>MyList.java · 想存数据？自己造容器</span><span>Java</span></div>
+        <pre><code>// 别人早就写好的 ArrayList，这一阶段的你还不能用，
+// 只能自己用数组一点点搭：
+class MyList {
+    private String[] data = new String[10];
+    private int size = 0;
+    public void add(String s) { data[size++] = s; }
+    public String get(int i)  { return data[i]; }
+}</code></pre>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="mini"><h4 class="c-bad">😫 这一阶段的痛</h4>
+          <p>全是手写、重复代码多；要做 Web 开发，连解析请求、读写数据库都得从零造轮子。</p></div>
+        <div class="mini"><h4 class="c-ok">✅ 你获得的地基</h4>
+          <p>看懂代码的底层逻辑。后面所有框架都是"别人替你写好的 JavaSE"，地基不牢，后面全晃。</p></div>
+      </div>
+
+      <div class="exit">
+        <h4>🔗 接着去哪查（内容以 JavaGuide 知识体系为准）</h4>
+        <div class="exit-list">
+          <a href="https://javaguide.cn/java/basis/java-basic-questions-01.html" target="_blank" rel="noopener">Java 基础常见面试题（一）<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/java/basis/java-basic-questions-02.html" target="_blank" rel="noopener">Java 基础（二）：面向对象 / String / 异常<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/java/collection/java-collection-questions-01.html" target="_blank" rel="noopener">Java 集合常见面试题（ArrayList / HashMap）<span class="src">JavaGuide</span></a>
+          <a href="https://docs.oracle.com/en/java/javase/21/" target="_blank" rel="noopener">JDK 21 官方文档<span class="src">Oracle</span></a>
+        </div>
+        <p class="tip">建议顺序：先把语法和面向对象练熟，再啃集合源码。集合是面试最高频的一块。</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-head"><span>🎬 场景：散落的砖块 + 手工敲代码</span><span class="c-main">Act 1</span></div>
+      <svg viewBox="0 0 420 300" class="w-full">
+        <!-- 地面 -->
+        <rect x="20" y="250" width="380" height="6" rx="3" fill="#243356" class="a-fade" style="--d:.1s"/>
+        <!-- 散落砖块（逐个淡入上移） -->
+        <g fill="#38bdf8" opacity=".85">
+          <rect x="60"  y="214" width="46" height="30" rx="4" class="a-pop" style="--d:.25s"/>
+          <rect x="110" y="214" width="46" height="30" rx="4" class="a-pop" style="--d:.40s"/>
+          <rect x="160" y="214" width="46" height="30" rx="4" class="a-pop" style="--d:.55s"/>
+          <rect x="106" y="182" width="46" height="30" rx="4" class="a-pop" style="--d:.70s"/>
+          <rect x="156" y="182" width="46" height="30" rx="4" class="a-pop" style="--d:.85s"/>
+          <rect x="131" y="150" width="46" height="30" rx="4" class="a-pop" style="--d:1s"/>
+        </g>
+        <!-- 砖块纹路 -->
+        <g stroke="#0b1220" stroke-width="2" opacity=".5">
+          <line x1="83"  y1="214" x2="83"  y2="244"/><line x1="133" y1="214" x2="133" y2="244"/>
+          <line x1="183" y1="214" x2="183" y2="244"/><line x1="129" y1="182" x2="129" y2="212"/>
+          <line x1="179" y1="182" x2="179" y2="212"/><line x1="154" y1="150" x2="154" y2="180"/>
+        </g>
+        <!-- 敲代码的工匠 + 锤子 -->
+        <g class="a-fade" style="--d:1.1s">
+          <circle cx="252" cy="120" r="13" fill="#fbbf24"/>
+          <rect x="242" y="134" width="20" height="34" rx="6" fill="#fbbf24"/>
+          <rect x="244" y="168" width="7" height="26" rx="3" fill="#fbbf24"/>
+          <rect x="255" y="168" width="7" height="26" rx="3" fill="#fbbf24"/>
+        </g>
+        <!-- 锤子（上下敲） -->
+        <g class="loop-hammer" style="transform-origin:300px 110px">
+          <rect x="292" y="96" width="8" height="52" rx="4" fill="#94a3b8"/>
+          <rect x="282" y="86" width="30" height="18" rx="5" fill="#cbd5e1"/>
+        </g>
+        <!-- 手写代码纸条 -->
+        <g class="a-right" style="--d:1.3s">
+          <rect x="296" y="176" width="108" height="72" rx="8" fill="#0e1729" stroke="#243356"/>
+          <text x="308" y="196" fill="#5b6b87" font-size="10" font-family="monospace">// 手写…</text>
+          <text x="308" y="212" fill="#c084fc" font-size="10" font-family="monospace">class</text>
+          <text x="344" y="212" fill="#86efac" font-size="10" font-family="monospace">MyList {</text>
+          <text x="308" y="228" fill="#d7e3f7" font-size="10" font-family="monospace">  add()</text>
+          <text x="308" y="240" fill="#d7e3f7" font-size="10" font-family="monospace">  get()
+            <tspan class="loop-blink" fill="#38bdf8">▌</tspan></text>
+        </g>
+        <!-- 汗水/碎屑 -->
+        <circle cx="272" cy="142" r="3" fill="#38bdf8" class="loop-drop"/>
+        <text x="24" y="278" fill="#5b6b87" font-size="11">一砖一瓦，全靠手写</text>
+      </svg>
+      <div class="legend">砖块一块块淡入堆叠 · 工匠挥锤 · 代码逐行手写</div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       第 2 幕：MySQL + Maven —— 材料仓库
+       ========================================================= -->
+  <section class="scene" data-name="MySQL + Maven · 材料仓库" data-color="#34d399">
+    <div class="story-card">
+      <div class="sub-row">
+        <div class="scene-sub">第 2 幕 · 比喻：仓库 + 自动送货</div>
+        <span class="vbadge">📌 MySQL 8.0 · Maven 3.9+</span>
+      </div>
+      <h2 class="scene-title">MySQL + Maven：材料从哪来</h2>
+      <p class="story-text">
+        光有砖不够。盖好的房子得有地方存东西——这就是
+        <span class="term" data-tip="MySQL：最流行的开源关系型数据库，用 SQL 语句存取数据，相当于房子的仓库。">MySQL</span>，
+        一个规规矩矩的货架仓库。另一件麻烦事是：螺丝、电线这些标准零件还要自己造吗？不用，
+        <span class="term" data-tip="Maven：Java 的依赖管理与构建工具，在 pom.xml 里写一行坐标，它就自动从网上下载对应的 jar 包。">Maven</span>
+        帮你自动下载别人做好的
+        <span class="term" data-tip="jar：Java 的压缩包，里面装着别人写好的可复用代码（类库）。">jar 零件</span>，
+        写一行配置，货车就把货送到门口。
+      </p>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <span class="chip hl">MySQL / SQL</span><span class="chip hl">表与索引</span>
+        <span class="chip hl">Maven</span><span class="chip hl">pom.xml</span><span class="chip hl">依赖管理</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-head"><span>pom.xml · 想要零件？写一行，自动送到</span><span>XML</span></div>
+        <pre><code>&lt;!-- 想要处理 JSON 的工具？声明坐标即可，
+     Maven 会自动把它和它依赖的库一起搬来 --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;com.fasterxml.jackson.core&lt;/groupId&gt;
+    &lt;artifactId&gt;jackson-databind&lt;/artifactId&gt;
+    &lt;version&gt;2.15.2&lt;/version&gt;
+&lt;/dependency&gt;</code></pre>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="mini"><h4 class="c-bad">😫 这一阶段的痛</h4>
+          <p>SQL 要手写、表结构要自己设计；Maven 偶尔还会"依赖冲突"（两个零件版本打架）。</p></div>
+        <div class="mini"><h4 class="c-ok">✅ 你获得的能力</h4>
+          <p>数据终于能持久保存了；第三方库随用随取，不用再自己造螺丝。</p></div>
+      </div>
+
+      <div class="exit">
+        <h4>🔗 接着去哪查（内容以 JavaGuide 知识体系为准）</h4>
+        <div class="exit-list">
+          <a href="https://javaguide.cn/database/sql/sql-syntax-summary.html" target="_blank" rel="noopener">SQL 语法基础：增删改查 / JOIN / GROUP BY<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/database/mysql/mysql-index.html" target="_blank" rel="noopener">MySQL 索引详解：为什么加了索引就快<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/database/mysql/transaction-isolation-level.html" target="_blank" rel="noopener">事务隔离级别<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/tools/maven/maven-core-concepts.html" target="_blank" rel="noopener">Maven 核心概念<span class="src">JavaGuide</span></a>
+          <a href="https://maven.apache.org/guides/getting-started/" target="_blank" rel="noopener">Maven 官方入门指南<span class="src">Apache</span></a>
+        </div>
+        <p class="tip">SQL 要动手练，光看记不住。装个 MySQL 8.0，自己建三张表连着查一遍。</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-head"><span>🎬 场景：仓库货架 + Maven 自动搬运</span><span class="c-main">Act 2</span></div>
+      <svg viewBox="0 0 420 300" class="w-full">
+        <!-- 仓库主体 -->
+        <g class="a-pop" style="--d:.15s">
+          <path d="M40 150 L110 100 L180 150 Z" fill="#34d399" opacity=".85"/>
+          <rect x="40" y="150" width="140" height="98" rx="4" fill="#16203a" stroke="#34d399" stroke-width="2"/>
+          <rect x="96" y="196" width="30" height="52" rx="3" fill="#34d399" opacity=".6"/>
+        </g>
+        <!-- 货架 -->
+        <g stroke="#34d399" stroke-width="2" opacity=".55" class="a-fade" style="--d:.45s">
+          <line x1="52" y1="176" x2="168" y2="176"/><line x1="52" y1="204" x2="168" y2="204"/>
+        </g>
+        <g fill="#34d399" class="a-pop" style="--d:.6s">
+          <rect x="58" y="160" width="18" height="16" rx="2"/><rect x="82" y="160" width="18" height="16" rx="2"/>
+          <rect x="130" y="160" width="18" height="16" rx="2"/><rect x="146" y="160" width="18" height="16" rx="2"/>
+          <rect x="58" y="188" width="18" height="16" rx="2"/><rect x="100" y="188" width="18" height="16" rx="2"/>
+        </g>
+        <text x="110" y="95" fill="#34d399" font-size="12" text-anchor="middle">MySQL 仓库</text>
+        <!-- 地面 -->
+        <rect x="20" y="248" width="380" height="6" rx="3" fill="#243356" class="a-fade" style="--d:.2s"/>
+        <text x="330" y="248" fill="#5b6b87" font-size="10" text-anchor="middle">你的工地</text>
+        <!-- 货车（来回跑） -->
+        <g class="loop-drive">
+          <g transform="translate(228,0)">
+            <rect x="0" y="196" width="56" height="30" rx="5" fill="#fbbf24"/>
+            <rect x="40" y="182" width="22" height="20" rx="4" fill="#fbbf24"/>
+            <circle cx="12" cy="230" r="7" fill="#94a3b8"/><circle cx="46" cy="230" r="7" fill="#94a3b8"/>
+            <!-- 车上的货箱（到站才出现） -->
+            <rect x="12" y="174" width="22" height="20" rx="3" fill="#38bdf8" class="loop-box"/>
+          </g>
+        </g>
+        <!-- 卸下的零件堆 -->
+        <g class="a-pop" style="--d:1.4s">
+          <rect x="352" y="208" width="22" height="18" rx="3" fill="#38bdf8"/>
+          <rect x="352" y="188" width="22" height="18" rx="3" fill="#38bdf8"/>
+          <rect x="378" y="208" width="22" height="18" rx="3" fill="#38bdf8"/>
+        </g>
+        <text x="330" y="180" fill="#38bdf8" font-size="10" class="a-fade" style="--d:1.6s">jar 零件</text>
+        <!-- 标签 -->
+        <text x="24" y="278" fill="#5b6b87" font-size="11">Maven 货车：仓库 ⇄ 工地 自动往返</text>
+      </svg>
+      <div class="legend">货车往返搬运 · 货箱到站淡入 · 仓库货架逐层亮起</div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       第 3 幕：JDBC —— 手动接水管
+       ========================================================= -->
+  <section class="scene" data-name="JDBC · 手动接水管" data-color="#fbbf24">
+    <div class="story-card">
+      <div class="sub-row">
+        <div class="scene-sub">第 3 幕 · 比喻：手动接水管</div>
+        <span class="vbadge dim">了解即可 · 实际开发用 HikariCP</span>
+      </div>
+      <h2 class="scene-title">JDBC：把水引进屋里</h2>
+      <p class="story-text">
+        仓库建好了，可房子和仓库之间还没有通路。你得自己扛一根水管去接——这就是
+        <span class="term" data-tip="JDBC：Java 官方定义的一套连接数据库的标准接口，各数据库厂商提供实现（驱动）。">JDBC</span>。
+        麻烦在于：<b>每次用水都要自己接一次，用完还得自己拆</b>。接了忘拆，水就一直漏——也就是
+        <span class="term" data-tip="连接泄露：数据库连接没关闭，连接数被耗尽，最终整个系统卡死。真实项目用连接池统一管理。">资源泄露</span>，
+        漏多了整个系统就瘫了。
+      </p>
+      <div class="notice skip">
+        <span>💡</span>
+        <p><b>这一幕看懂概念就行，不用练。</b>真实项目不会手写 JDBC，但你得知道框架替你做了什么，否则出问题时无从下手。真正要记住的是一件事：<b>数据库连接是稀缺资源</b>——这就是连接池存在的理由。</p>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <span class="chip hl">DriverManager</span><span class="chip hl">Connection</span>
+        <span class="chip hl">Statement</span><span class="chip hl">ResultSet</span><span class="chip hl">连接池</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-head"><span>UserDao.java · 查一次数据，手工开、手工关</span><span>Java</span></div>
+        <pre><code>Connection conn = DriverManager.getConnection(url, user, pwd);
+Statement  st   = conn.createStatement();
+ResultSet  rs   = st.executeQuery("SELECT * FROM user");
+while (rs.next()) {
+    System.out.println(rs.getString("name"));
+}
+// 三步都得手动关，少关一个就泄露：
+rs.close(); st.close(); conn.close();</code></pre>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="mini"><h4 class="c-bad">😫 这一阶段的痛</h4>
+          <p>开连接、关连接的代码到处重复；SQL 混在 Java 代码里；忘记关闭就连接泄露。</p></div>
+        <div class="mini"><h4 class="c-ok">✅ 你获得的能力</h4>
+          <p>Java 终于能真正读写数据库了——这是后端开发最关键的一步通路。</p></div>
+      </div>
+
+      <div class="exit">
+        <h4>🔗 接着去哪查（直接看它的继任者）</h4>
+        <div class="exit-list">
+          <a href="https://javaguide.cn/system-design/framework/mybatis/mybatis-interview.html" target="_blank" rel="noopener">MyBatis 常见面试题：JDBC 是怎么被取代的<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/database/mysql/mysql-questions-01.html" target="_blank" rel="noopener">MySQL 常见面试题（一）<span class="src">JavaGuide</span></a>
+          <a href="https://mybatis.org/mybatis-3/" target="_blank" rel="noopener">MyBatis 官方文档<span class="src">mybatis.org</span></a>
+        </div>
+        <p class="tip">看完 MyBatis 再回头看这一幕，会明白「框架到底替你省了什么」。</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-head"><span>🎬 场景：手动插拔水管</span><span class="c-main">Act 3</span></div>
+      <svg viewBox="0 0 420 300" class="w-full">
+        <rect x="20" y="252" width="380" height="6" rx="3" fill="#243356" class="a-fade" style="--d:.1s"/>
+        <!-- 房子 -->
+        <g class="a-pop" style="--d:.2s">
+          <path d="M36 150 L86 112 L136 150 Z" fill="#fbbf24" opacity=".8"/>
+          <rect x="36" y="150" width="100" height="96" rx="4" fill="#16203a" stroke="#fbbf24" stroke-width="2"/>
+          <rect x="74" y="188" width="24" height="58" rx="3" fill="#fbbf24" opacity=".55"/>
+        </g>
+        <text x="86" y="106" fill="#fbbf24" font-size="11" text-anchor="middle">Java 程序</text>
+        <!-- 数据库圆柱 -->
+        <g class="a-pop" style="--d:.35s">
+          <ellipse cx="330" cy="150" rx="44" ry="13" fill="#38bdf8"/>
+          <path d="M286 150 v92 a44 13 0 0 0 88 0 v-92" fill="#16203a" stroke="#38bdf8" stroke-width="2"/>
+          <ellipse cx="330" cy="242" rx="44" ry="13" fill="none" stroke="#38bdf8" stroke-width="2" opacity=".5"/>
+          <ellipse cx="330" cy="184" rx="44" ry="13" fill="none" stroke="#38bdf8" stroke-width="1" opacity=".35"/>
+          <ellipse cx="330" cy="214" rx="44" ry="13" fill="none" stroke="#38bdf8" stroke-width="1" opacity=".35"/>
+        </g>
+        <text x="330" y="132" fill="#38bdf8" font-size="11" text-anchor="middle">MySQL</text>
+        <!-- 水管（插拔动画） -->
+        <g class="loop-plug">
+          <rect x="140" y="196" width="96" height="12" rx="6" fill="#94a3b8"/>
+          <rect x="132" y="190" width="14" height="24" rx="3" fill="#cbd5e1"/>
+          <rect x="232" y="190" width="14" height="24" rx="3" fill="#cbd5e1"/>
+        </g>
+        <!-- 接口口子 -->
+        <circle cx="286" cy="202" r="8" fill="#0a1120" stroke="#38bdf8" stroke-width="2" class="a-fade" style="--d:.5s"/>
+        <circle cx="140" cy="202" r="8" fill="#0a1120" stroke="#fbbf24" stroke-width="2" class="a-fade" style="--d:.5s"/>
+        <!-- 漏水（未关连接） -->
+        <circle cx="286" cy="212" r="3" fill="#f87171" class="loop-drop"/>
+        <text x="250" y="238" fill="#f87171" font-size="10" class="a-fade" style="--d:1.2s">忘记 close() → 一直漏</text>
+        <!-- 手写开关提示 -->
+        <g class="a-fade" style="--d:.9s">
+          <rect x="42" y="60" width="176" height="34" rx="6" fill="#0e1729" stroke="#243356"/>
+          <text x="54" y="82" fill="#c084fc" font-size="10" font-family="monospace">getConnection() → close()</text>
+        </g>
+        <text x="24" y="278" fill="#5b6b87" font-size="11">接一次、拆一次，反复插拔</text>
+      </svg>
+      <div class="legend">水管平移插入 / 拔出循环 · 红色水滴提示资源泄露风险</div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       第 4 幕：SSM —— 预制零件 + 大量 XML
+       ========================================================= -->
+  <section class="scene" data-name="SSM · 预制零件与 XML" data-color="#c084fc">
+    <div class="story-card">
+      <div class="sub-row">
+        <div class="scene-sub">第 4 幕 · 比喻：预制零件 + 成堆说明书</div>
+        <span class="vbadge dim">历史课 · XML 配置别背</span>
+      </div>
+      <h2 class="scene-title">SSM：零件预制好了，但说明书堆成山</h2>
+      <p class="story-text">
+        有人把常用零件都预制好了：<span class="term" data-tip="Spring IOC：控制反转，对象的创建和组装交给 Spring 容器托管，不用自己 new，也不要自己管依赖。">Spring IOC</span>
+        帮你管零件的生产和装配，<span class="term" data-tip="AOP：面向切面编程，把日志、事务、权限这类通用逻辑统一织入，不污染业务代码。">AOP</span>
+        统一加装水电，<span class="term" data-tip="SpringMVC：负责接收 HTTP 请求、分发给对应处理方法的 Web 框架，相当于房子的前台接待。">SpringMVC</span>
+        负责前台接待，<span class="term" data-tip="MyBatis：持久层框架，帮你把 SQL 查询结果自动映射成 Java 对象，少写大量样板代码。">MyBatis</span>
+        接管水管。可代价是：你得写一大堆
+        <span class="term" data-tip="XML：标签式的配置文件格式，SSM 时代大量用于声明 Bean、映射 SQL，写起来繁琐且易错。">XML 说明书</span>
+        告诉它们怎么拼。说明书堆成山，一个字母写错就跑不起来。
+      </p>
+      <div class="notice skip">
+        <span>⚠️</span>
+        <p><b>2026 年没人从 SSM 起步了，XML 配置千万别背</b>（现在全用注解）。但这一幕<b>有一个东西必须学：IOC 和 AOP 的思想</b>——那是 SpringBoot 的地基，不懂就只能抄代码、不会排错。建议学完第 5 幕再回头看，会豁然开朗。</p>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <span class="chip hl">Spring IOC（必学）</span><span class="chip hl">AOP（必学）</span>
+        <span class="chip hl">SpringMVC</span><span class="chip hl">MyBatis</span><span class="chip hl">XML 配置</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-head"><span>applicationContext.xml · 装配说明书</span><span>XML</span></div>
+        <pre><code>&lt;!-- 每加一个组件，就得手写一段声明 --&gt;
+&lt;bean id="userDao" class="com.demo.UserDao"/&gt;
+
+&lt;bean id="userService" class="com.demo.UserServiceImpl"&gt;
+    &lt;property name="userDao" ref="userDao"/&gt;
+&lt;/bean&gt;
+
+&lt;!-- 还有 spring-mvc.xml、mybatis-config.xml、
+     xxxMapper.xml、web.xml …… 一个都不能少 --&gt;</code></pre>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="mini"><h4 class="c-bad">😫 这一阶段的痛</h4>
+          <p>配置繁琐、XML 满天飞；改一处忘改另一处，启动报错全靠肉眼排查。</p></div>
+        <div class="mini"><h4 class="c-ok">✅ 你获得的能力</h4>
+          <p>解耦、可维护、行业通用；理解了 IOC / AOP，才算真正懂框架的思想。</p></div>
+      </div>
+
+      <div class="exit">
+        <h4>🔗 接着去哪查（IOC / AOP 是本幕唯一必读）</h4>
+        <div class="exit-list">
+          <a href="https://javaguide.cn/system-design/framework/spring/ioc-and-aop.html" target="_blank" rel="noopener">Spring IOC &amp; AOP 详解<span class="src">JavaGuide · 必看</span></a>
+          <a href="https://javaguide.cn/system-design/framework/spring/spring-knowledge-and-questions-summary.html" target="_blank" rel="noopener">Spring 常见面试题总结<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/system-design/framework/mybatis/mybatis-interview.html" target="_blank" rel="noopener">MyBatis 常见面试题<span class="src">JavaGuide</span></a>
+        </div>
+        <p class="tip">XML 那一堆跳过不看的代价很小；IOC 和 AOP 跳过不看的代价很大。</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-head"><span>🎬 场景：成堆 XML + 零件散落 + 手动布线</span><span class="c-main">Act 4</span></div>
+      <svg viewBox="0 0 420 300" class="w-full">
+        <!-- 一摞 XML 文档 -->
+        <g>
+          <rect x="34" y="196" width="112" height="60" rx="5" fill="#16203a" stroke="#c084fc" stroke-width="2" class="a-pop" style="--d:.15s"/>
+          <rect x="44" y="182" width="112" height="60" rx="5" fill="#16203a" stroke="#c084fc" stroke-width="2" class="a-pop" style="--d:.3s"/>
+          <rect x="54" y="168" width="112" height="60" rx="5" fill="#16203a" stroke="#c084fc" stroke-width="2" class="a-pop" style="--d:.45s"/>
+          <rect x="64" y="154" width="112" height="60" rx="5" fill="#16203a" stroke="#c084fc" stroke-width="2" class="a-pop" style="--d:.6s"/>
+          <g stroke="#5b6b87" stroke-width="2" class="a-fade" style="--d:.8s">
+            <line x1="76" y1="170" x2="150" y2="170"/><line x1="76" y1="182" x2="140" y2="182"/>
+            <line x1="76" y1="194" x2="150" y2="194"/><line x1="76" y1="206" x2="128" y2="206"/>
+          </g>
+          <text x="120" y="146" fill="#c084fc" font-size="11" text-anchor="middle">XML 说明书山</text>
+        </g>
+        <!-- 散落的预制零件 -->
+        <g fill="#38bdf8">
+          <rect x="230" y="66"  width="34" height="22" rx="4" class="a-pop" style="--d:.7s"/>
+          <rect x="292" y="96"  width="34" height="22" rx="4" class="a-pop" style="--d:.85s"/>
+          <rect x="352" y="66"  width="34" height="22" rx="4" class="a-pop" style="--d:1s"/>
+          <rect x="256" y="150" width="34" height="22" rx="4" class="a-pop" style="--d:1.15s"/>
+          <rect x="330" y="176" width="34" height="22" rx="4" class="a-pop" style="--d:1.3s"/>
+        </g>
+        <!-- 零件标签 -->
+        <g font-size="9" fill="#93a4c0" text-anchor="middle" class="a-fade" style="--d:1.5s">
+          <text x="247" y="60">IOC</text><text x="309" y="90">AOP</text><text x="369" y="60">MVC</text>
+          <text x="273" y="144">Batis</text><text x="347" y="170">Tx</text>
+        </g>
+        <!-- 手动布线（虚线流动） -->
+        <g stroke="#c084fc" stroke-width="1.6" fill="none" class="loop-dash">
+          <path d="M176 196 C 220 150, 210 110, 247 88"/>
+          <path d="M176 214 C 230 230, 250 200, 273 172"/>
+          <path d="M273 82 C 310 70, 320 78, 352 78"/>
+          <path d="M309 118 C 320 150, 320 160, 347 176"/>
+        </g>
+        <!-- 手写放大镜（排查配置） -->
+        <g class="a-fade" style="--d:1.6s">
+          <circle cx="212" cy="238" r="14" fill="none" stroke="#fbbf24" stroke-width="3"/>
+          <line x1="222" y1="248" x2="234" y2="260" stroke="#fbbf24" stroke-width="3"/>
+        </g>
+        <text x="248" y="262" fill="#fbbf24" font-size="10" class="a-fade" style="--d:1.8s">手动排错…</text>
+        <rect x="20" y="278" width="380" height="4" rx="2" fill="#243356"/>
+        <text x="24" y="294" fill="#5b6b87" font-size="10">零件散落，连线要一条条手动布</text>
+      </svg>
+      <div class="legend">XML 纸堆逐张淡入 · 虚线表示手动配置的依赖关系 · 放大镜＝排错</div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       第 5 幕：SpringBoot —— 一体化建房套件
+       ========================================================= -->
+  <section class="scene" data-name="SpringBoot · 一体化建房套件" data-color="#22d3ee">
+    <div class="story-card">
+      <div class="sub-row">
+        <div class="scene-sub">第 5 幕 · 比喻：一体化建房套件，一键组装</div>
+        <span class="vbadge">📌 Spring Boot 3.x（需 JDK 17+）</span>
+      </div>
+      <h2 class="scene-title">SpringBoot：点一下，房子自己长出来</h2>
+      <p class="story-text">
+        SpringBoot 说：说明书别写了，我替你猜。想要什么功能，报个名字（
+        <span class="term" data-tip="Starter：起步依赖，引入一个 starter 就等于把这套功能所需的全部依赖一次性带来，版本已帮你配好。">Starter</span>）
+        我一并送来；<span class="term" data-tip="自动装配：SpringBoot 根据 classpath 上有哪些 jar，自动创建并配置好所需的组件。">自动装配</span>
+        负责把零件装到位；<span class="term" data-tip="内嵌 Tomcat：Web 服务器打包进项目里，不用另外安装配置，java -jar 就能跑。">Tomcat 服务器</span>
+        直接内置，不用你另外搭。最后只留一份 <code>application.yml</code> 写端口和数据库地址，
+        点一下启动，房子连同水电脚手架一起自动立起来。
+      </p>
+      <div class="notice">
+        <span>⚠️</span>
+        <p><b>新手最容易踩的坑：Spring Boot 3.x 起，包名从 <code>javax.*</code> 改成了 <code>jakarta.*</code>。</b>
+        照着 2022 年以前的老教程抄，import 会一片红。另外它要求 JDK 17 及以上，装环境时别装错。</p>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <span class="chip hl">Starter 起步依赖</span><span class="chip hl">自动装配</span>
+        <span class="chip hl">内嵌 Tomcat</span><span class="chip hl">application.yml</span><span class="chip hl">约定大于配置</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-head"><span>App.java · 一行启动整个项目</span><span>Java</span></div>
+        <pre><code>@SpringBootApplication   // 一个注解 = 全套默认配置
+public class App {
+    public static void main(String[] args) {
+        SpringApplication.run(App.class, args);  // 启动！
+    }
+}</code></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-head"><span>application.yml · 只需要写你真正关心的</span><span>YAML</span></div>
+        <pre><code>server:
+  port: 8080
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/demo</code></pre>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="mini"><h4 class="c-warn">🤔 还缺什么？</h4>
+          <p>它解决的是"搭起来慢"，但业务代码、SQL 优化、异常处理、安全防护仍要你自己写；框架黑盒变多，出了问题更难查。</p></div>
+        <div class="mini"><h4 class="c-ok">✅ 你获得的能力</h4>
+          <p>几分钟起一个能跑的 Web 项目，把精力还给业务本身——这也是现在企业开发的主流形态。</p></div>
+      </div>
+
+      <div class="exit">
+        <h4>🔗 接着去哪查（本幕是就业主力，值得深挖）</h4>
+        <div class="exit-list">
+          <a href="https://javaguide.cn/system-design/framework/spring/springboot-knowledge-and-questions-summary.html" target="_blank" rel="noopener">Spring Boot 常见面试题总结<span class="src">JavaGuide · 必看</span></a>
+          <a href="https://javaguide.cn/system-design/framework/spring/spring-boot-auto-assembly-principles.html" target="_blank" rel="noopener">自动装配原理（面试高频）<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/system-design/framework/mybatis/mybatis-interview.html" target="_blank" rel="noopener">MyBatis 常见面试题<span class="src">JavaGuide</span></a>
+          <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/" target="_blank" rel="noopener">Spring Boot 官方参考文档<span class="src">spring.io</span></a>
+        </div>
+        <p class="tip">学完这里，你已经能独立写出一个能跑的 Web 后台了。下一步：做一个自己的增删改查项目。</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-head"><span>🎬 场景：一键组装，脚手架自动搭起</span><span class="c-main">Act 5</span></div>
+      <svg viewBox="0 0 420 300" class="w-full">
+        <rect x="20" y="254" width="380" height="6" rx="3" fill="#243356" class="a-fade" style="--d:.1s"/>
+        <!-- 一键按钮 -->
+        <g class="a-pop" style="--d:.2s">
+          <rect x="150" y="18" width="120" height="30" rx="15" fill="#22d3ee"/>
+          <circle cx="168" cy="33" r="7" fill="#04121f"/>
+          <text x="188" y="37" fill="#04121f" font-size="12" font-weight="bold">一键启动</text>
+        </g>
+        <circle cx="168" cy="33" r="20" fill="none" stroke="#22d3ee" stroke-width="2" class="loop-pulse"/>
+        <!-- 房子各部件飞入组装 -->
+        <g>
+          <path d="M120 132 L210 84 L300 132 Z" fill="#22d3ee" opacity=".9" class="a-pop" style="--d:.5s"/>
+          <rect x="120" y="132" width="180" height="122" rx="5" fill="#16203a" stroke="#22d3ee" stroke-width="2" class="a-left" style="--d:.7s"/>
+          <rect x="192" y="178" width="36" height="76" rx="4" fill="#22d3ee" opacity=".65" class="a-right" style="--d:.9s"/>
+          <rect x="140" y="152" width="34" height="30" rx="4" fill="#0e1729" stroke="#22d3ee" class="a-pop" style="--d:1.1s"/>
+          <rect x="246" y="152" width="34" height="30" rx="4" fill="#0e1729" stroke="#22d3ee" class="a-pop" style="--d:1.2s"/>
+        </g>
+        <!-- 自动搭起的脚手架 -->
+        <g stroke="#fbbf24" stroke-width="2" opacity=".75" class="a-fade" style="--d:1.4s">
+          <line x1="112" y1="128" x2="112" y2="254"/><line x1="308" y1="128" x2="308" y2="254"/>
+          <line x1="112" y1="180" x2="308" y2="180"/><line x1="112" y1="226" x2="308" y2="226"/>
+          <line x1="112" y1="150" x2="308" y2="204"/><line x1="308" y1="150" x2="112" y2="204"/>
+        </g>
+        <!-- 内嵌 Tomcat 徽章 -->
+        <g class="loop-float">
+          <rect x="332" y="96" width="72" height="26" rx="13" fill="#0e1729" stroke="#22d3ee" stroke-width="2"/>
+          <text x="368" y="113" fill="#22d3ee" font-size="10" text-anchor="middle">Tomcat ✓</text>
+        </g>
+        <!-- 自动接入的水管（数据库） -->
+        <g class="a-fade" style="--d:1.6s">
+          <path d="M300 232 h 46" stroke="#38bdf8" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="376" cy="232" rx="20" ry="9" fill="#38bdf8"/>
+          <path d="M356 232 v 22 a20 9 0 0 0 40 0 v-22" fill="#16203a" stroke="#38bdf8" stroke-width="2"/>
+          <text x="376" y="222" fill="#38bdf8" font-size="9" text-anchor="middle">DB 自动接好</text>
+        </g>
+        <text x="210" y="72" fill="#22d3ee" font-size="12" text-anchor="middle" class="a-fade" style="--d:1.8s">SpringBoot 套件</text>
+        <text x="24" y="278" fill="#5b6b87" font-size="11">零件自动归位 · 管线一次连通</text>
+      </svg>
+      <div class="legend">点击后各部件依次飞入 · 脚手架与管线自动搭好</div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       第 6 幕：微服务与中间件 —— 扩容
+       ========================================================= -->
+  <section class="scene" data-name="微服务与中间件 · 扩容" data-color="#f472b6">
+    <div class="story-card">
+      <div class="sub-row">
+        <div class="scene-sub">第 6 幕 · 比喻：一栋不够，盖成一个小区</div>
+        <span class="vbadge dim">Redis 7+ · Spring Cloud 2023.x</span>
+      </div>
+      <h2 class="scene-title">微服务与中间件：撑住一万人同时来访</h2>
+      <p class="story-text">
+        一栋房子住一个人很舒服，来一万人就塌了。于是你把它拆成几栋小楼（
+        <span class="term" data-tip="微服务：把大系统按业务拆成多个独立的小服务，各自部署、各自扩容，互不影响。">微服务</span>）：
+        用户楼、订单楼、商品楼，各管一摊，哪栋挤就单独加盖哪栋。门口再配三件套：
+        <span class="term" data-tip="Redis：内存数据库，读写极快，常用来做缓存，把热点数据挡在数据库前面。">Redis</span> 前台缓存（常问的问题先答，不用次次翻库）、
+        <span class="term" data-tip="MQ：消息队列，把耗时任务排队异步处理，流量高峰时削峰填谷，系统不会被冲垮。">MQ</span> 排队叫号（干不完的活先排上，别堵在门口）、
+        <span class="term" data-tip="SpringCloud：微服务全家桶，提供注册中心、网关、负载均衡、熔断等组件，让多栋"房子"协同工作。">SpringCloud</span>
+        做统一门牌和分流（访客该去哪栋，由网关指路）。
+      </p>
+      <div class="notice skip">
+        <span>🕒</span>
+        <p><b>这一幕现在别急着学。</b>先把前五幕做成一个真正能跑起来的项目，再回来——否则你会陷入"配置倒腾三天，业务一行没写"。
+        唯一例外是 <b>Redis 缓存三问题（穿透 / 击穿 / 雪崩）</b>：面试必考，而且你迟早会真的遇到。</p>
+      </div>
+      <div class="flex flex-wrap gap-2 mt-3">
+        <span class="chip hl">Redis 缓存</span><span class="chip hl">MQ 消息队列</span>
+        <span class="chip hl">Nacos 注册中心</span><span class="chip hl">Gateway 网关</span><span class="chip hl">负载均衡</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-head"><span>UserService.java · 先问缓存，再问数据库</span><span>Java</span></div>
+        <pre><code>// 热点数据放 Redis，数据库压力立刻降一个数量级
+String val = redisTemplate.opsForValue().get("user:" + id);
+if (val == null) {
+    val = userMapper.selectById(id);        // 缓存没有才查库
+    redisTemplate.opsForValue().set("user:" + id, val);
+}
+return val;</code></pre>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="mini"><h4 class="c-bad">😫 这一阶段的痛</h4>
+          <p>复杂度陡增：分布式事务、数据一致性、服务排查困难——不是小项目该上的东西。</p></div>
+        <div class="mini"><h4 class="c-ok">✅ 你获得的能力</h4>
+          <p>系统能横向扩容、扛住高并发；这也是中高级后端岗位的分水岭。</p></div>
+      </div>
+
+      <div class="exit">
+        <h4>🔗 接着去哪查（需要时再来，别提前啃）</h4>
+        <div class="exit-list">
+          <a href="https://javaguide.cn/database/redis/redis-questions-01.html" target="_blank" rel="noopener">Redis 常见面试题（一）<span class="src">JavaGuide · 必看</span></a>
+          <a href="https://javaguide.cn/database/redis/redis-persistence.html" target="_blank" rel="noopener">Redis 持久化：RDB 与 AOF<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/high-performance/message-queue/kafka-questions-01.html" target="_blank" rel="noopener">Kafka 常见面试题<span class="src">JavaGuide</span></a>
+          <a href="https://javaguide.cn/distributed-system/distributed-lock.html" target="_blank" rel="noopener">分布式锁<span class="src">JavaGuide</span></a>
+          <a href="https://redis.io/docs/latest/" target="_blank" rel="noopener">Redis 官方文档<span class="src">redis.io</span></a>
+        </div>
+        <p class="tip">还有 RPC、网关、负载均衡、分布式事务，等你真的要做多服务时再逐一击破。</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-head"><span>🎬 场景：多栋房子互联 + 流量分流</span><span class="c-main">Act 6</span></div>
+      <svg viewBox="0 0 420 300" class="w-full">
+        <defs>
+          <path id="p1" d="M60 60 L120 110"/>
+          <path id="p2" d="M60 60 L210 104"/>
+          <path id="p3" d="M60 60 L300 110"/>
+          <path id="p4" d="M60 60 L120 190"/>
+        </defs>
+        <!-- 网关（流量入口） -->
+        <g class="a-pop" style="--d:.15s">
+          <rect x="16" y="34" width="88" height="42" rx="10" fill="#16203a" stroke="#f472b6" stroke-width="2"/>
+          <text x="60" y="52" fill="#f472b6" font-size="10" text-anchor="middle">Gateway</text>
+          <text x="60" y="66" fill="#93a4c0" font-size="9" text-anchor="middle">统一入口</text>
+        </g>
+        <!-- 分流线 -->
+        <g stroke="#f472b6" stroke-width="1.4" fill="none" opacity=".45" class="loop-dash">
+          <!-- 兼容写法：同时给 href 与 xlink:href，老浏览器也能识别 -->
+          <use href="#p1" xlink:href="#p1"/><use href="#p2" xlink:href="#p2"/>
+          <use href="#p3" xlink:href="#p3"/><use href="#p4" xlink:href="#p4"/>
+        </g>
+        <!-- 流量小球沿路径运动 -->
+        <g fill="#f472b6">
+          <circle r="4"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#p1" xlink:href="#p1"/></animateMotion></circle>
+          <circle r="4"><animateMotion dur="2.4s" begin=".5s" repeatCount="indefinite"><mpath href="#p2" xlink:href="#p2"/></animateMotion></circle>
+          <circle r="4"><animateMotion dur="2.4s" begin="1s" repeatCount="indefinite"><mpath href="#p3" xlink:href="#p3"/></animateMotion></circle>
+          <circle r="4" fill="#38bdf8"><animateMotion dur="2.4s" begin="1.5s" repeatCount="indefinite"><mpath href="#p4" xlink:href="#p4"/></animateMotion></circle>
+        </g>
+        <!-- 三栋微服务小楼 -->
+        <g>
+          <g class="a-pop" style="--d:.4s">
+            <path d="M92 118 L122 100 L152 118 Z" fill="#f472b6" opacity=".85"/>
+            <rect x="92" y="118" width="60" height="46" rx="4" fill="#16203a" stroke="#f472b6" stroke-width="2"/>
+            <text x="122" y="146" fill="#f472b6" font-size="9" text-anchor="middle">用户服务</text>
+          </g>
+          <g class="a-pop" style="--d:.55s">
+            <path d="M182 112 L212 94 L242 112 Z" fill="#f472b6" opacity=".85"/>
+            <rect x="182" y="112" width="60" height="52" rx="4" fill="#16203a" stroke="#f472b6" stroke-width="2"/>
+            <text x="212" y="142" fill="#f472b6" font-size="9" text-anchor="middle">订单服务</text>
+          </g>
+          <g class="a-pop" style="--d:.7s">
+            <path d="M272 118 L302 100 L332 118 Z" fill="#f472b6" opacity=".85"/>
+            <rect x="272" y="118" width="60" height="46" rx="4" fill="#16203a" stroke="#f472b6" stroke-width="2"/>
+            <text x="302" y="146" fill="#f472b6" font-size="9" text-anchor="middle">商品服务</text>
+          </g>
+        </g>
+        <!-- Redis 缓存 -->
+        <g class="loop-float">
+          <rect x="24" y="172" width="82" height="34" rx="8" fill="#0e1729" stroke="#f87171" stroke-width="2"/>
+          <text x="65" y="194" fill="#f87171" font-size="10" text-anchor="middle">Redis 缓存</text>
+        </g>
+        <!-- MQ 队列 -->
+        <g class="a-fade" style="--d:1s">
+          <rect x="24" y="222" width="82" height="34" rx="8" fill="#0e1729" stroke="#fbbf24" stroke-width="2"/>
+          <text x="65" y="244" fill="#fbbf24" font-size="10" text-anchor="middle">MQ 排队</text>
+        </g>
+        <!-- 注册中心 -->
+        <g class="a-pop" style="--d:1.2s">
+          <rect x="300" y="196" width="96" height="40" rx="10" fill="#16203a" stroke="#34d399" stroke-width="2"/>
+          <text x="348" y="214" fill="#34d399" font-size="10" text-anchor="middle">Nacos 注册中心</text>
+          <text x="348" y="228" fill="#93a4c0" font-size="9" text-anchor="middle">谁在线、在哪</text>
+        </g>
+        <!-- 服务 → 注册中心 连线 -->
+        <g stroke="#34d399" stroke-width="1.2" fill="none" opacity=".4" class="loop-dash">
+          <path d="M152 150 C 220 180, 260 190, 300 210"/>
+          <path d="M242 150 C 270 180, 280 190, 330 196"/>
+        </g>
+        <!-- 数据库层 -->
+        <g class="a-fade" style="--d:1.4s">
+          <rect x="150" y="212" width="120" height="34" rx="8" fill="#0e1729" stroke="#38bdf8" stroke-width="2"/>
+          <text x="210" y="234" fill="#38bdf8" font-size="10" text-anchor="middle">MySQL 集群</text>
+        </g>
+        <text x="24" y="284" fill="#5b6b87" font-size="10">流量由网关分发 · 按需给某一栋单独扩容</text>
+      </svg>
+      <div class="legend">小球沿路径循环 = 请求分流 · 缓存与队列各司其职</div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       第 7 页：全局思维导图（批次 E 新增）
+       中心左置的水平树：6 主分支 × 4 叶子
+       放弃放射状布局——30 个节点在有限画布里必然挤成一团
+       ========================================================= -->
+  <section class="scene" id="sceneMap" data-name="全局导图 · 六幕一张图" data-color="#38bdf8">
+    <div class="story-card" style="grid-column:1/-1">
+      <div class="sub-row">
+        <div class="scene-sub">第 7 页 · 六幕收拢成一张图</div>
+        <span class="vbadge">🗺 点击任意节点跳到那一幕</span>
+      </div>
+      <h2 class="scene-title">全局导图：从地基到小区</h2>
+      <p class="story-text">故事是线性的，一页页翻完容易只记得碎片。<b>这张图把它们串成整体</b>——点任意一个方块，直接跳到那一幕。</p>
+
+      <svg class="mm" viewBox="0 0 1120 660" role="img" aria-label="Java 后端六阶段全局思维导图">
+
+        <!-- ===== 连线层（先画，位于节点下方）===== -->
+        <path class="mm-link" style="animation-delay:.15s" stroke="#38bdf8" d="M205,340 C280,340 280,70 360,70"/>
+        <path class="mm-link" style="animation-delay:.24s" stroke="#34d399" d="M205,340 C280,340 280,178 360,178"/>
+        <path class="mm-link" style="animation-delay:.33s" stroke="#fbbf24" d="M205,340 C280,340 280,286 360,286"/>
+        <path class="mm-link" style="animation-delay:.42s" stroke="#c084fc" d="M205,340 C280,340 280,394 360,394"/>
+        <path class="mm-link" style="animation-delay:.51s" stroke="#22d3ee" d="M205,340 C280,340 280,502 360,502"/>
+        <path class="mm-link" style="animation-delay:.60s" stroke="#f472b6" d="M205,340 C280,340 280,610 360,610"/>
+
+        <g stroke="#243356" stroke-width="1.2">
+          <path class="mm-link" style="animation-delay:.50s" d="M510,70 L560,70"/>
+          <path class="mm-link" style="animation-delay:.59s" d="M510,178 L560,178"/>
+          <path class="mm-link" style="animation-delay:.68s" d="M510,286 L560,286"/>
+          <path class="mm-link" style="animation-delay:.77s" d="M510,394 L560,394"/>
+          <path class="mm-link" style="animation-delay:.86s" d="M510,502 L560,502"/>
+          <path class="mm-link" style="animation-delay:.95s" d="M510,610 L560,610"/>
+        </g>
+
+        <!-- ===== 中心节点 ===== -->
+        <g class="mm-node" style="animation-delay:0s">
+          <rect x="55" y="295" width="150" height="90" rx="14" fill="#16203a" stroke="#38bdf8" stroke-width="2"/>
+          <text x="130" y="326" fill="#e8eefb" font-size="17" font-weight="700" text-anchor="middle">Java</text>
+          <text x="130" y="352" fill="#93a4c0" font-size="13" text-anchor="middle">后端路线</text>
+          <text x="130" y="371" fill="#5b6b87" font-size="11" text-anchor="middle">六步建成</text>
+        </g>
+
+        <!-- ===== ① JavaSE ===== -->
+        <g class="mm-hit mm-node" data-go="0" style="animation-delay:.60s">
+          <rect class="mm-box" x="360" y="46" width="150" height="48" rx="10" fill="#0e1729" stroke="#38bdf8" stroke-width="2"/>
+          <text x="435" y="70" fill="#38bdf8" font-size="15" font-weight="700" text-anchor="middle">① JavaSE</text>
+          <text x="435" y="104" fill="#38bdf8" font-size="11" text-anchor="middle">35% · 必学</text>
+        </g>
+        <g class="mm-hit mm-node" data-go="0" style="animation-delay:.75s"><rect class="mm-lbox" x="560" y="51" width="110" height="38" rx="8" fill="#111a2e" stroke="#38bdf8" stroke-width="1.4"/><text x="615" y="75" fill="#cfe3f7" font-size="13" text-anchor="middle">语法基础</text></g>
+        <g class="mm-hit mm-node" data-go="0" style="animation-delay:.82s"><rect class="mm-lbox" x="682" y="51" width="110" height="38" rx="8" fill="#111a2e" stroke="#38bdf8" stroke-width="1.4"/><text x="737" y="75" fill="#cfe3f7" font-size="13" text-anchor="middle">面向对象</text></g>
+        <g class="mm-hit mm-node" data-go="0" style="animation-delay:.89s"><rect class="mm-lbox" x="804" y="51" width="110" height="38" rx="8" fill="#111a2e" stroke="#38bdf8" stroke-width="1.4"/><text x="859" y="75" fill="#cfe3f7" font-size="13" text-anchor="middle">集合框架</text></g>
+        <g class="mm-hit mm-node" data-go="0" style="animation-delay:.96s"><rect class="mm-lbox" x="926" y="51" width="110" height="38" rx="8" fill="#111a2e" stroke="#38bdf8" stroke-width="1.4"/><text x="981" y="75" fill="#cfe3f7" font-size="13" text-anchor="middle">多线程IO</text></g>
+
+        <!-- ===== ② MySQL + Maven ===== -->
+        <g class="mm-hit mm-node" data-go="1" style="animation-delay:.69s">
+          <rect class="mm-box" x="360" y="154" width="150" height="48" rx="10" fill="#0e1729" stroke="#34d399" stroke-width="2"/>
+          <text x="435" y="178" fill="#34d399" font-size="15" font-weight="700" text-anchor="middle">② MySQL+Maven</text>
+          <text x="435" y="212" fill="#34d399" font-size="11" text-anchor="middle">20% · 必学</text>
+        </g>
+        <g class="mm-hit mm-node" data-go="1" style="animation-delay:.84s"><rect class="mm-lbox" x="560" y="159" width="110" height="38" rx="8" fill="#111a2e" stroke="#34d399" stroke-width="1.4"/><text x="615" y="183" fill="#cfe3f7" font-size="13" text-anchor="middle">SQL增删改查</text></g>
+        <g class="mm-hit mm-node" data-go="1" style="animation-delay:.91s"><rect class="mm-lbox" x="682" y="159" width="110" height="38" rx="8" fill="#111a2e" stroke="#34d399" stroke-width="1.4"/><text x="737" y="183" fill="#cfe3f7" font-size="13" text-anchor="middle">索引与事务</text></g>
+        <g class="mm-hit mm-node" data-go="1" style="animation-delay:.98s"><rect class="mm-lbox" x="804" y="159" width="110" height="38" rx="8" fill="#111a2e" stroke="#34d399" stroke-width="1.4"/><text x="859" y="183" fill="#cfe3f7" font-size="13" text-anchor="middle">Maven依赖</text></g>
+        <g class="mm-hit mm-node" data-go="1" style="animation-delay:1.05s"><rect class="mm-lbox" x="926" y="159" width="110" height="38" rx="8" fill="#111a2e" stroke="#34d399" stroke-width="1.4"/><text x="981" y="183" fill="#cfe3f7" font-size="13" text-anchor="middle">构建生命周期</text></g>
+
+        <!-- ===== ③ JDBC（降级：虚线框 + 灰色权重）===== -->
+        <g class="mm-hit mm-node" data-go="2" style="animation-delay:.78s">
+          <rect class="mm-box" x="360" y="262" width="150" height="48" rx="10" fill="#0e1729" stroke="#fbbf24" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="435" y="286" fill="#fbbf24" font-size="15" font-weight="700" text-anchor="middle">③ JDBC</text>
+          <text x="435" y="320" fill="#94a3b8" font-size="11" text-anchor="middle">5% · 了解即可</text>
+        </g>
+        <g class="mm-hit mm-node" data-go="2" style="animation-delay:.93s"><rect class="mm-lbox" x="560" y="267" width="110" height="38" rx="8" fill="#111a2e" stroke="#fbbf24" stroke-width="1.4" stroke-dasharray="5 4"/><text x="615" y="291" fill="#cfe3f7" font-size="13" text-anchor="middle">驱动与连接</text></g>
+        <g class="mm-hit mm-node" data-go="2" style="animation-delay:1s"><rect class="mm-lbox" x="682" y="267" width="110" height="38" rx="8" fill="#111a2e" stroke="#fbbf24" stroke-width="1.4" stroke-dasharray="5 4"/><text x="737" y="291" fill="#cfe3f7" font-size="13" text-anchor="middle">预编译防注入</text></g>
+        <g class="mm-hit mm-node" data-go="2" style="animation-delay:1.07s"><rect class="mm-lbox" x="804" y="267" width="110" height="38" rx="8" fill="#111a2e" stroke="#fbbf24" stroke-width="1.4" stroke-dasharray="5 4"/><text x="859" y="291" fill="#cfe3f7" font-size="13" text-anchor="middle">事务提交</text></g>
+        <g class="mm-hit mm-node" data-go="2" style="animation-delay:1.14s"><rect class="mm-lbox" x="926" y="267" width="110" height="38" rx="8" fill="#111a2e" stroke="#fbbf24" stroke-width="1.4" stroke-dasharray="5 4"/><text x="981" y="291" fill="#cfe3f7" font-size="13" text-anchor="middle">连接池</text></g>
+
+        <!-- ===== ④ SSM（降级：虚线框 + 灰色权重，但 IOC/AOP 必学）===== -->
+        <g class="mm-hit mm-node" data-go="3" style="animation-delay:.87s">
+          <rect class="mm-box" x="360" y="370" width="150" height="48" rx="10" fill="#0e1729" stroke="#c084fc" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="435" y="394" fill="#c084fc" font-size="15" font-weight="700" text-anchor="middle">④ SSM</text>
+          <text x="435" y="428" fill="#94a3b8" font-size="11" text-anchor="middle">10% · XML 可跳过</text>
+        </g>
+        <g class="mm-hit mm-node" data-go="3" style="animation-delay:1.02s"><rect class="mm-lbox" x="560" y="375" width="110" height="38" rx="8" fill="#111a2e" stroke="#c084fc" stroke-width="1.4" stroke-dasharray="5 4"/><text x="615" y="399" fill="#cfe3f7" font-size="13" text-anchor="middle">IOC 容器</text></g>
+        <g class="mm-hit mm-node" data-go="3" style="animation-delay:1.09s"><rect class="mm-lbox" x="682" y="375" width="110" height="38" rx="8" fill="#111a2e" stroke="#c084fc" stroke-width="1.4" stroke-dasharray="5 4"/><text x="737" y="399" fill="#cfe3f7" font-size="13" text-anchor="middle">AOP 切面</text></g>
+        <g class="mm-hit mm-node" data-go="3" style="animation-delay:1.16s"><rect class="mm-lbox" x="804" y="375" width="110" height="38" rx="8" fill="#111a2e" stroke="#c084fc" stroke-width="1.4" stroke-dasharray="5 4"/><text x="859" y="399" fill="#cfe3f7" font-size="13" text-anchor="middle">SpringMVC</text></g>
+        <g class="mm-hit mm-node" data-go="3" style="animation-delay:1.23s"><rect class="mm-lbox" x="926" y="375" width="110" height="38" rx="8" fill="#111a2e" stroke="#c084fc" stroke-width="1.4" stroke-dasharray="5 4"/><text x="981" y="399" fill="#cfe3f7" font-size="13" text-anchor="middle">MyBatis</text></g>
+
+        <!-- ===== ⑤ SpringBoot ===== -->
+        <g class="mm-hit mm-node" data-go="4" style="animation-delay:.96s">
+          <rect class="mm-box" x="360" y="478" width="150" height="48" rx="10" fill="#0e1729" stroke="#22d3ee" stroke-width="2"/>
+          <text x="435" y="502" fill="#22d3ee" font-size="15" font-weight="700" text-anchor="middle">⑤ SpringBoot</text>
+          <text x="435" y="536" fill="#22d3ee" font-size="11" text-anchor="middle">25% · 必学</text>
+        </g>
+        <g class="mm-hit mm-node" data-go="4" style="animation-delay:1.11s"><rect class="mm-lbox" x="560" y="483" width="110" height="38" rx="8" fill="#111a2e" stroke="#22d3ee" stroke-width="1.4"/><text x="615" y="507" fill="#cfe3f7" font-size="13" text-anchor="middle">Starter 依赖</text></g>
+        <g class="mm-hit mm-node" data-go="4" style="animation-delay:1.18s"><rect class="mm-lbox" x="682" y="483" width="110" height="38" rx="8" fill="#111a2e" stroke="#22d3ee" stroke-width="1.4"/><text x="737" y="507" fill="#cfe3f7" font-size="13" text-anchor="middle">自动装配</text></g>
+        <g class="mm-hit mm-node" data-go="4" style="animation-delay:1.25s"><rect class="mm-lbox" x="804" y="483" width="110" height="38" rx="8" fill="#111a2e" stroke="#22d3ee" stroke-width="1.4"/><text x="859" y="507" fill="#cfe3f7" font-size="13" text-anchor="middle">内嵌 Tomcat</text></g>
+        <g class="mm-hit mm-node" data-go="4" style="animation-delay:1.32s"><rect class="mm-lbox" x="926" y="483" width="110" height="38" rx="8" fill="#111a2e" stroke="#22d3ee" stroke-width="1.4"/><text x="981" y="507" fill="#cfe3f7" font-size="13" text-anchor="middle">yml 配置</text></g>
+
+        <!-- ===== ⑥ 微服务 ===== -->
+        <g class="mm-hit mm-node" data-go="5" style="animation-delay:1.05s">
+          <rect class="mm-box" x="360" y="586" width="150" height="48" rx="10" fill="#0e1729" stroke="#f472b6" stroke-width="2"/>
+          <text x="435" y="610" fill="#f472b6" font-size="15" font-weight="700" text-anchor="middle">⑥ 微服务</text>
+          <text x="435" y="644" fill="#94a3b8" font-size="11" text-anchor="middle">5% · 找工作再说</text>
+        </g>
+        <g class="mm-hit mm-node" data-go="5" style="animation-delay:1.20s"><rect class="mm-lbox" x="560" y="591" width="110" height="38" rx="8" fill="#111a2e" stroke="#f472b6" stroke-width="1.4"/><text x="615" y="615" fill="#cfe3f7" font-size="13" text-anchor="middle">Redis 缓存</text></g>
+        <g class="mm-hit mm-node" data-go="5" style="animation-delay:1.27s"><rect class="mm-lbox" x="682" y="591" width="110" height="38" rx="8" fill="#111a2e" stroke="#f472b6" stroke-width="1.4"/><text x="737" y="615" fill="#cfe3f7" font-size="13" text-anchor="middle">消息队列 MQ</text></g>
+        <g class="mm-hit mm-node" data-go="5" style="animation-delay:1.34s"><rect class="mm-lbox" x="804" y="591" width="110" height="38" rx="8" fill="#111a2e" stroke="#f472b6" stroke-width="1.4"/><text x="859" y="615" fill="#cfe3f7" font-size="13" text-anchor="middle">SpringCloud</text></g>
+        <g class="mm-hit mm-node" data-go="5" style="animation-delay:1.41s"><rect class="mm-lbox" x="926" y="591" width="110" height="38" rx="8" fill="#111a2e" stroke="#f472b6" stroke-width="1.4"/><text x="981" y="615" fill="#cfe3f7" font-size="13" text-anchor="middle">分布式锁</text></g>
+
+        <text x="55" y="655" fill="#5b6b87" font-size="12">虚线框 = 了解即可 / 可跳过 · 百分比 = 建议投入的时间权重</text>
+      </svg>
+      <div class="legend">点击任意方块跳到那一幕 · 底部「🗺 导图」按钮可随时回到这里</div>
+    </div>
+  </section>
+
+  <!-- =========================================================
+       第 8 页：对比总览表
+       ========================================================= -->
+  <section class="scene" data-name="总览 · 六个阶段对比" data-color="#34d399">
+    <div class="story-card" style="grid-column:1/-1">
+      <div class="scene-sub">收尾 · 一表看懂整条路线</div>
+      <h2 class="scene-title">从地基到小区：六个阶段对比</h2>
+      <p class="story-text">每一层都不是"取代"上一层，而是<b>站在上一层之上偷懒</b>。框架只是替你把重复劳动做了，底下的 JavaSE、SQL、HTTP 始终还在。</p>
+
+      <div class="overflow-x-auto mt-4">
+        <table>
+          <thead>
+            <tr><th>阶段</th><th>盖房子比喻</th><th>解决了什么</th><th>留下的痛点</th><th>你会写出的东西</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="c-main font-bold">① JavaSE</td><td>地基、砖块水泥</td><td>让你能写出能跑的程序</td><td>全手写、重复多、做 Web 从零造轮子</td><td>控制台小项目、算法题</td></tr>
+            <tr><td class="c-main font-bold">② MySQL+Maven</td><td>材料仓库 + 自动送货</td><td>数据可持久保存；第三方库随用随取</td><td>SQL 与表结构要自己设计；依赖可能冲突</td><td>建表语句、pom.xml</td></tr>
+            <tr><td class="c-main font-bold">③ JDBC</td><td>手动接水管</td><td>Java 终于能读写数据库</td><td>开关连接代码到处重复，忘关就泄露</td><td>DAO 层、手写 CRUD</td></tr>
+            <tr><td class="c-main font-bold">④ SSM</td><td>预制零件 + 说明书</td><td>解耦、可维护；不再重复造轮子</td><td>XML 配置繁重，一处写错就启动失败</td><td>Spring 配置、Mapper</td></tr>
+            <tr><td class="c-main font-bold">⑤ SpringBoot</td><td>一体化建房套件</td><td>几分钟起项目，专注业务</td><td>黑盒变多、排错变难；业务与优化仍靠自己</td><td>独立可运行的 Web 服务</td></tr>
+            <tr><td class="c-main font-bold">⑥ 微服务</td><td>一栋变一个小区</td><td>横向扩容，扛住高并发</td><td>分布式事务、一致性、排查成本高</td><td>多服务 + 缓存 + 队列</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mt-4">
+        <div class="mini"><h4 class="c-warn">🎒 别忘了带上这三件行李</h4>
+          <p><b>Git</b>：代码版本管理，不然改崩了回不去。<br>
+             <b>Linux + Docker</b>：房子要搬到服务器上跑，部署是另一门功课。<br>
+             <b>日志与监控</b>：上线后看不见屋里发生了什么，是最可怕的事。</p></div>
+        <div class="mini"><h4 class="c-ok">🧭 给零基础的三条建议</h4>
+          <p>1. 别跳步：JavaSE 不牢，SSM 会学成"抄配置"。<br>
+             2. 每学一阶段就做一个小项目，哪怕只是增删改查。<br>
+             3. 遇到报错先读英文堆栈的第一行，答案通常在里面。</p></div>
+      </div>
+
+      <div class="exit">
+        <h4>🧭 接下来去哪（按你的目标选一条路）</h4>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="mini"><h4 class="c-ok">🎯 想快速找工作</h4>
+            <p>别贪多。把 JavaSE + MySQL + SpringBoot 三块吃透就够投简历了，剩下的边面试边补。</p>
+            <p class="mt-2"><a class="ex-link" href="https://javaguide.cn/interview-preparation/backend-interview-plan.html" target="_blank" rel="noopener">JavaGuide 后端面试通关计划 →</a></p></div>
+          <div class="mini"><h4 class="c-warn">📚 想系统学扎实</h4>
+            <p>本页每一幕末尾的「接着去哪查」都指向 JavaGuide 对应章节，顺着一路啃完即可。</p>
+            <p class="mt-2"><a class="ex-link" href="https://javaguide.cn/" target="_blank" rel="noopener">JavaGuide 在线站（15.9 万 star）→</a></p></div>
+        </div>
+        <p class="tip">想动手做项目：<a class="ex-link" href="https://github.com/macrozheng/mall" target="_blank" rel="noopener">macrozheng/mall</a> 是一套完整的电商实战项目（Spring Boot + MyBatis + Docker），适合学完第 5 幕后照着啃。</p>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <!-- ============ 底部控制栏 ============ -->
+  <footer>
+    <div class="ctrl">
+      <div class="flex items-center gap-2">
+        <button class="btn" id="prev">← 上一幕</button>
+        <button class="btn primary" id="play">⏸ 暂停</button>
+        <button class="btn" id="next">下一幕 →</button>
+        <button class="btn" id="mapBtn">🗺 全局导图</button>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs c-muted" id="autoHint">自动播放中 · 每幕 13 秒</span>
+        <div class="dots" id="dots"></div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="tip"></div>
+
+<script>
+/* ============================================================
+   1. 场景数据 & DOM 引用
+   ============================================================ */
+const scenes = Array.from(document.querySelectorAll('.scene'));
+const TOTAL  = scenes.length;
+const NAMES  = scenes.map(s => s.dataset.name);
+const COLORS = scenes.map(s => s.dataset.color);
+let idx = 0, timer = null, playing = true;
+const DURATION = 13000; // 每幕停留时长
+
+const bar = document.getElementById('bar');
+const actNo = document.getElementById('actNo');
+const actName = document.getElementById('actName');
+const dotsBox = document.getElementById('dots');
+
+/* ============================================================
+   2. 极简语法高亮（只做着色，不做完整解析）
+   思路：一次性 master 正则扫描，避免"先替换注释、再替换字符串"
+   导致后一轮把前一轮生成的 HTML 属性当成代码再匹配一次
+   ============================================================ */
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+const JAVA_RE = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\\n]|\\.)*")|(@[A-Za-z]\w*)|\b(public|private|protected|class|interface|static|final|void|new|return|if|else|for|while|try|catch|null|true|false|import|package|extends|implements|this|String|int|boolean)\b/g;
+const XML_RE  = /(&lt;!--[\s\S]*?--&gt;)|("[^"\n]*")|(&lt;\/?[A-Za-z][\w:.-]*)|([A-Za-z][\w:.-]*)(?==)/g;
+const YAML_RE = /(#[^\n]*)|("[^"\n]*")|([ \t]*)([\w.-]+)(?=:)/g;
+
+function highlight(code, lang){
+  let s = escapeHtml(code);
+  if (lang === 'Java') {
+    s = s.replace(JAVA_RE, (m, com, str, ann, kw) => {
+      if (com) return '<span class="c-com">' + com + '</span>';
+      if (str) return '<span class="c-str">' + str + '</span>';
+      if (ann) return '<span class="c-ann">' + ann + '</span>';
+      return '<span class="c-kw">' + m + '</span>';
+    });
+  } else if (lang === 'XML') {
+    s = s.replace(XML_RE, (m, com, str, tag, attr) => {
+      if (com)  return '<span class="c-com">' + com + '</span>';
+      if (str)  return '<span class="c-str">' + str + '</span>';
+      if (tag)  return '<span class="c-tag">' + tag + '</span>';
+      if (attr) return '<span class="c-attr">' + attr + '</span>';
+      return m;
+    });
+  } else if (lang === 'YAML') {
+    s = s.replace(YAML_RE, (m, com, str, sp, key) => {
+      if (com)  return '<span class="c-com">' + com + '</span>';
+      if (str)  return '<span class="c-str">' + str + '</span>';
+      if (key)  return (sp || '') + '<span class="c-key">' + key + '</span>';
+      return m;
+    });
+  }
+  return s;
+}
+// 遍历所有代码块，按 head 上标注的语言着色
+document.querySelectorAll('.code-wrap').forEach(wrap => {
+  const lang = wrap.querySelector('.code-head span:last-child').textContent.trim();
+  const code = wrap.querySelector('code');
+  code.innerHTML = highlight(code.textContent, lang);
+});
+
+/* ============================================================
+   3. 名词悬浮解释框
+   ============================================================ */
+const tip = document.getElementById('tip');
+document.addEventListener('mouseover', e => {
+  const t = e.target.closest('.term');
+  if (!t) return;
+  tip.textContent = t.dataset.tip;
+  tip.classList.add('show');
+  const r = t.getBoundingClientRect();
+  const w = 290, pad = 10;
+  let left = r.left + r.width / 2 - w / 2;
+  left = Math.max(pad, Math.min(left, window.innerWidth - w - pad));
+  // 优先显示在名词上方，上方空间不足则放下方
+  let top = r.top - tip.offsetHeight - 8;
+  if (top < pad) top = r.bottom + 8;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+});
+document.addEventListener('mouseout', e => {
+  if (e.target.closest('.term')) tip.classList.remove('show');
+});
+
+/* ============================================================
+   4. 章节圆点
+   ============================================================ */
+NAMES.forEach((n, i) => {
+  const b = document.createElement('button');
+  b.className = 'dot';
+  b.title = n;
+  b.onclick = () => go(i);
+  dotsBox.appendChild(b);
+});
+const dots = Array.from(dotsBox.children);
+
+/* ============================================================
+   5. 切换场景
+   display:none → block 会让 CSS 动画自动从头播放，
+   因此每切回来动画都会重新演一遍
+   ============================================================ */
+function go(i){
+  idx = (i + TOTAL) % TOTAL;
+  scenes.forEach((s, k) => {
+    const on = (k === idx);
+    s.style.display = on ? '' : 'none';
+    s.classList.toggle('is-active', on);
+  });
+  // 主题色跟着当前幕变化
+  document.documentElement.style.setProperty('--c', COLORS[idx]);
+  actNo.textContent = '第 ' + (idx + 1) + ' / ' + TOTAL + ' 幕';
+  actName.textContent = NAMES[idx];
+  bar.style.width = ((idx + 1) / TOTAL * 100) + '%';
+  dots.forEach((d, k) => {
+    d.classList.toggle('on', k === idx);
+    d.classList.toggle('done', k < idx);
+  });
+  document.getElementById('prev').disabled = false;
+  // 导图页：首次进入播一次生长动画，之后不再重播（不然每次回来都重新长一遍，打断阅读）
+  if (idx === MAP_IDX) {
+    if (mapPlayed) mapSec.classList.add('no-anim');
+    else setTimeout(() => { mapPlayed = true; }, 1800);
+  }
+  if (playing) restart();
+}
+function restart(){
+  clearInterval(timer);
+  timer = setTimeout(() => go(idx + 1), DURATION);
+}
+
+/* ============================================================
+   5.5 全局导图：点击节点跳幕（批次 E）
+   导图既是"全局回顾"，也是导航中枢——双向跳转
+   ============================================================ */
+const mapSec  = document.getElementById('sceneMap');
+const MAP_IDX = scenes.indexOf(mapSec);
+let mapPlayed = false;
+document.querySelectorAll('.mm-hit').forEach(g => {
+  g.addEventListener('click', () => go(Number(g.dataset.go)));
+});
+document.getElementById('mapBtn').onclick = () => go(MAP_IDX);
+
+/* ============================================================
+   6. 控制按钮 & 键盘
+   ============================================================ */
+const playBtn = document.getElementById('play');
+const hint = document.getElementById('autoHint');
+function setPlaying(v){
+  playing = v;
+  playBtn.textContent = playing ? '⏸ 暂停' : '▶ 播放';
+  hint.textContent = playing ? '自动播放中 · 每幕 13 秒' : '已暂停 · 可手动切换';
+  clearInterval(timer);
+  if (playing) restart();
+}
+playBtn.onclick = () => setPlaying(!playing);
+document.getElementById('prev').onclick = () => go(idx - 1);
+document.getElementById('next').onclick = () => go(idx + 1);
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') go(idx + 1);
+  if (e.key === 'ArrowLeft')  go(idx - 1);
+  if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); }
+  if (e.key === 'm' || e.key === 'M') go(MAP_IDX);
+});
+
+/* 启动 */
+go(0);
+setPlaying(true);
+</script>
+</body>
+</html>
