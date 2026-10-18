@@ -17,8 +17,8 @@
 
 <div align="center">
 
-**[▶ 在线看动画演示](https://zhaoyoucai98.github.io/bean-by-bean/)** ·
-[下载 HTML 双击打开](./java-backend-roadmap.html)
+
+[ HTML 双击打开](https://zhaoyoucai98.github.io/bean-by-bean/index.html)
 
 </div>
 
